@@ -1,0 +1,129 @@
+---
+title: "WheatMicrobiomeRepro_analayis"
+author: "Justice Ruwona"
+date: "2023-04-10"
+output: html_document
+---
+
+```{r}
+# DownLoad packages
+
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("phyloseq")
+
+
+#load libraries
+library(phyloseq)
+library(tidyverse)
+library(Biostrings)
+library(ggplot2)
+library(vegan)
+library(dplyr)
+library(lme4)
+library(emmeans)
+library(multcomp)
+
+```
+```{r}
+##### Set global options #####
+
+# no scientific notation
+options(scipen=10000) 
+
+# color blind pallet used throughout 
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+```
+```{r}
+###### Read in data ####
+
+#Loading the mapping file metadata
+samp_dat <- read.csv("Data_files/mapping_its.csv")
+samp_dat <- samp_dat %>%
+  filter(Crop == "Yr_1") # filter only wheat dataset, exclude other crops in yr2, yr3 of rotation
+rownames(samp_dat) <- samp_dat$Sample_Name # format row names must match OTU table headers
+SAMP.fungi <- phyloseq::sample_data(samp_dat)
+
+# OTU table - 
+otu <- read.csv("Data_files/otu_table_its.csv")
+treatment <- factor(c("T1", "T2", "T3", "T4"))
+rownames(otu) <- otu$OTU_ID # format row names must match OTU table headers
+otu <- otu[,-1] # shifting to 1, numeric matrix
+OTU.fungi <- phyloseq::otu_table(otu, taxa_are_rows = TRUE)
+
+# Taxonomy
+taxonomy.fungi <- read.csv("Data_files/taxonomy_table_its.csv")
+rownames(taxonomy.fungi) <- taxonomy.fungi$OTU_ID
+taxonomy.fungi2 <- taxonomy.fungi %>%
+  subset(Kingdom == "Fungi")
+
+TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
+
+# Fasta
+#FASTA.fungi <- readDNAStringSet("ITS_all_crops.fasta", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
+
+```
+```{r}
+###### Create Initial Phyloseq object ######
+fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
+str(fungi.unedited)
+```
+```{r}
+plot_bar(fungi.unedited, fill = "Family")
+
+# Subset the data by treatment and time period
+physeq_sub <- fungi.unedited 
+
+      
+
+# Calculate alpha diversity metrics (Shannon, Simpson, and Observed OTUs) and print table
+alpha_div <- estimate_richness(physeq_sub, measures=c("Shannon", "Simpson", "Observed"))
+
+
+# Add treatment, collection time interval and tissue information to alpha diversity table
+alpha_div <- cbind(Treatment = as.factor(sample_data(physeq_sub)$Treatment), 
+                   Collection = as.factor(sample_data(physeq_sub)$Collection),
+                   Tissue = as.factor(sample_data(physeq_sub)$Tissue),
+                   alpha_div)
+
+# Calculate summary statistics for each alpha diversity metric 
+alpha_div_summary <- alpha_div %>%
+  group_by(Treatment, Collection, Tissue) %>%
+  summarize(mean_shannon = mean(Shannon), 
+            sd_shannon = sd(Shannon)) 
+           # mean_simpson = mean(Simpson), 
+            #sd_simpson = sd(Simpson), 
+            #mean_observed = mean(Observed), 
+            #sd_observed = sd(Observed))
+
+
+# Create the box plot Treatments
+ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+                    labels=c("Vegetative", "Flowering", "Seed development")) +
+  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
+  xlab("Treatment") + ylab("Shannon diversity index") +
+  ggtitle("Alpha Diversity Boxplot")+
+  theme_bw()
+
+
+#### ANOVA
+lm.alphadiv <- (lm(mean_shannon ~ Treatment*Collection,data = alpha_div_summary))
+summary(lm.alphadiv)
+anova(lm.alphadiv)
+print(anova(lm.alphadiv))
+
+### Test ls means
+smeans <- emmeans(lm.alphadiv, ~ Treatment | Collection) # estimate lsmeans of Treatment within Collection
+Results_lsmeans <- cld(smeans, alpha = 0.05, reversed = TRUE, details = TRUE) # contrast with Tukey adjustment
+Results_lsmeans
+
+## Plot for Growth Stage (Collection)
+alpha_div_summary %>%
+  ggplot(aes(x = Collection, y = mean_shannon, fill = Treatment)) +
+  geom_boxplot()
+```
+
