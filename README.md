@@ -7,5 +7,5 @@ Wheat plants were sampled from a wheat/maize/soybean crop rotation site that imp
 This work aims to determine if the wheat fungal endophytic communities differ by management strategy. 
 
 Descriptions of R scripts:
-1. [Datasets] (https://github.com/jruwona/Wheat_microbiomeRepro/tree/main/Data_files) 
-2. [Analysis] (https://github.com/jruwona/Wheat_microbiomeRepro)
+1. [Datasets](https://github.com/jruwona/Wheat_microbiomeRepro/tree/main/Data_files) 
+2. [Analysis](https://github.com/jruwona/Wheat_microbiomeRepro)
