@@ -4,7 +4,7 @@ author: "Justice Ruwona"
 date: "2023-04-10"
 output: html_document
 ---
-
+### Load in Libraries
 ```{r}
 # DownLoad packages
 
@@ -36,6 +36,7 @@ options(scipen=10000)
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
+### READ IN DATA STEPS
 ```{r}
 ###### Read in data ####
 
@@ -70,8 +71,9 @@ TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
 fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
 str(fungi.unedited)
 ```
+### DATA ANALYSIS
 ```{r}
-plot_bar(fungi.unedited, fill = "Family")
+#plot_bar(fungi.unedited, fill = "Family")
 
 # Subset the data by treatment and time period
 physeq_sub <- fungi.unedited 
@@ -99,15 +101,7 @@ alpha_div_summary <- alpha_div %>%
             #sd_observed = sd(Observed))
 
 
-# Create the box plot Treatments
-ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) + 
-  geom_boxplot() +
-  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
-                    labels=c("Vegetative", "Flowering", "Seed development")) +
-  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
-  xlab("Treatment") + ylab("Shannon diversity index") +
-  ggtitle("Alpha Diversity Boxplot")+
-  theme_bw()
+
 
 
 #### ANOVA
@@ -120,6 +114,16 @@ print(anova(lm.alphadiv))
 smeans <- emmeans(lm.alphadiv, ~ Treatment | Collection) # estimate lsmeans of Treatment within Collection
 Results_lsmeans <- cld(smeans, alpha = 0.05, reversed = TRUE, details = TRUE) # contrast with Tukey adjustment
 Results_lsmeans
+
+# Create the box plot Treatments
+ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+                    labels=c("Vegetative", "Flowering", "Seed development")) +
+  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
+  xlab("Treatment") + ylab("Shannon diversity index") +
+  ggtitle("Alpha Diversity Boxplot")+
+  theme_bw()
 
 ## Plot for Growth Stage (Collection)
 alpha_div_summary %>%
