@@ -68,16 +68,41 @@ TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
 #FASTA.fungi <- readDNAStringSet("ITS_all_crops.fasta", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
 
 ```
+# Create Phyloseq object and Run General Statistics
 ```{r}
 ###### Create Initial Phyloseq object ######
 fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
-str(fungi.unedited)
+
+## Remove samples with less than 5000 reads
+fungi.edited <- fungi.unedited %>% 
+  prune_samples(sample_sums(.) > 5000, .) %>% # remove samples below 5,000 reads
+  phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) # remove taxa with less than 1 reads
 ```
+
+## General Statistics
+```{r}
+sample_sums(fungi.edited) %>%
+  sort()
+# New number of total reads
+sum(sample_sums(fungi.edited)) # 4,272,434
+# Mean and median read depth 
+mean(sample_sums(fungi.edited)) # 20,443.21
+median(sample_sums(fungi.edited)) # 16,512
+# Histogram including median read depth
+read.depths <- data.frame(sample_sums(fungi.edited))
+colnames(read.depths) <- "read.depth"
+read.depth.plot <- ggplot(read.depths, aes(read.depth)) +
+  geom_histogram(fill = cbbPalette[[3]], color = "black") + 
+  geom_vline(xintercept = median(sample_sums(fungi.unedited)), linetype = "dashed") + 
+  theme_classic() + 
+  xlab("Read Depth")
+read.depth.plot
+```
+
 ### DATA ANALYSIS
 
 ##Alpha diversity
 ```{r}
-#plot_bar(fungi.unedited, fill = "Family")
 # Subset the data by treatment and time period
 physeq_sub <- fungi.unedited 
       
@@ -92,11 +117,11 @@ alpha_div <- cbind(Treatment = as.factor(sample_data(physeq_sub)$Treatment),
 alpha_div_summary <- alpha_div %>%
   group_by(Treatment, Collection, Tissue) %>%
   summarize(mean_shannon = mean(Shannon), 
-            sd_shannon = sd(Shannon)) 
-           # mean_simpson = mean(Simpson), 
-            #sd_simpson = sd(Simpson), 
-            #mean_observed = mean(Observed), 
-            #sd_observed = sd(Observed))
+            sd_shannon = sd(Shannon), 
+            mean_simpson = mean(Simpson), 
+            sd_simpson = sd(Simpson), 
+            mean_observed = mean(Observed), 
+            sd_observed = sd(Observed))
 #### ANOVA
 lm.alphadiv <- (lm(mean_shannon ~ Treatment*Collection,data = alpha_div_summary))
 summary(lm.alphadiv)
@@ -112,10 +137,23 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
   scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
                     labels=c("Vegetative", "Flowering", "Seed development")) +
   scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
-  xlab("Treatment") + ylab("Shannon diversity index") +
+  xlab("Management") + ylab("Shannon diversity index") +
+  ggtitle("Alpha Diversity Boxplot")+
+  theme_bw() +
+  theme(panel.background = element_rect(fill = "white"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())
+
+## Plot for Growth Stage (Collection)
+
+ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+                    labels=c("Vegetative", "Flowering", "Seed development")) +
+  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
+  xlab("Management") + ylab("Shannon diversity index") +
   ggtitle("Alpha Diversity Boxplot")+
   theme_bw()
-## Plot for Growth Stage (Collection)
 ```
 
 ##Beta Diversity

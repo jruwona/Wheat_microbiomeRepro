@@ -41,8 +41,8 @@ BiocManager::install("phyloseq")
 ```
 
 ```
-## Old packages: 'cli', 'fastmap', 'gargle', 'htmltools', 'rhdf5', 'TH.data',
-##   'xfun', 'zoo'
+## Old packages: 'cli', 'fastmap', 'gargle', 'htmltools', 'processx', 'rhdf5',
+##   'TH.data', 'tinytex', 'xfun', 'zoo'
 ```
 
 ```r
@@ -326,61 +326,147 @@ TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
 # Fasta
 #FASTA.fungi <- readDNAStringSet("ITS_all_crops.fasta", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
 ```
+# Create Phyloseq object and Run General Statistics
 
 ```r
 ###### Create Initial Phyloseq object ######
 fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
-str(fungi.unedited)
+
+## Remove samples with less than 5000 reads
+fungi.edited <- fungi.unedited %>% 
+  prune_samples(sample_sums(.) > 5000, .) %>% # remove samples below 5,000 reads
+  phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) # remove taxa with less than 1 reads
 ```
 
-```
-## Formal class 'phyloseq' [package "phyloseq"] with 5 slots
-##   ..@ otu_table:Formal class 'otu_table' [package "phyloseq"] with 2 slots
-##   .. .. ..@ .Data        : num [1:7233, 1:216] 437 1293 1035 15 2042 ...
-##   .. .. .. ..- attr(*, "dimnames")=List of 2
-##   .. .. .. .. ..$ : chr [1:7233] "F_OTU_20" "F_OTU_47" "F_OTU_1" "F_OTU_16" ...
-##   .. .. .. .. ..$ : chr [1:216] "W_C1_T1_R1_L" "W_C1_T1_R1_R" "W_C1_T1_R1_S" "W_C1_T1_R2_L" ...
-##   .. .. ..@ taxa_are_rows: logi TRUE
-##   .. .. ..$ dim     : int [1:2] 7233 216
-##   .. .. ..$ dimnames:List of 2
-##   .. .. .. ..$ : chr [1:7233] "F_OTU_20" "F_OTU_47" "F_OTU_1" "F_OTU_16" ...
-##   .. .. .. ..$ : chr [1:216] "W_C1_T1_R1_L" "W_C1_T1_R1_R" "W_C1_T1_R1_S" "W_C1_T1_R2_L" ...
-##   ..@ tax_table:Formal class 'taxonomyTable' [package "phyloseq"] with 1 slot
-##   .. .. ..@ .Data: chr [1:7233, 1:8] "F_OTU_20" "F_OTU_47" "F_OTU_1" "F_OTU_16" ...
-##   .. .. .. ..- attr(*, "dimnames")=List of 2
-##   .. .. .. .. ..$ : chr [1:7233] "F_OTU_20" "F_OTU_47" "F_OTU_1" "F_OTU_16" ...
-##   .. .. .. .. ..$ : chr [1:8] "OTU_ID" "Kingdom" "Phylum" "Class" ...
-##   .. .. ..$ dim     : int [1:2] 7233 8
-##   .. .. ..$ dimnames:List of 2
-##   .. .. .. ..$ : chr [1:7233] "F_OTU_20" "F_OTU_47" "F_OTU_1" "F_OTU_16" ...
-##   .. .. .. ..$ : chr [1:8] "OTU_ID" "Kingdom" "Phylum" "Class" ...
-##   ..@ sam_data :'data.frame':	216 obs. of  12 variables:
-## Formal class 'sample_data' [package "phyloseq"] with 4 slots
-##   .. .. ..@ .Data    :List of 12
-##   .. .. .. ..$ : chr [1:216] "W_C1_T1_R1_L" "W_C1_T1_R1_R" "W_C1_T1_R1_S" "W_C1_T1_R2_L" ...
-##   .. .. .. ..$ : chr [1:216] "Yr_1" "Yr_1" "Yr_1" "Yr_1" ...
-##   .. .. .. ..$ : chr [1:216] "C1" "C1" "C1" "C1" ...
-##   .. .. .. ..$ : chr [1:216] "T1" "T1" "T1" "T1" ...
-##   .. .. .. ..$ : chr [1:216] "R1" "R1" "R1" "R2" ...
-##   .. .. .. ..$ : chr [1:216] "Leaf" "Root" "Stem" "Leaf" ...
-##   .. .. .. ..$ : chr [1:216] "Wheat_C1" "Wheat_C1" "Wheat_C1" "Wheat_C1" ...
-##   .. .. .. ..$ : chr [1:216] "Wheat_T1" "Wheat_T1" "Wheat_T1" "Wheat_T1" ...
-##   .. .. .. ..$ : chr [1:216] "T1_Leaf" "T1_Root" "T1_Stem" "T1_Leaf" ...
-##   .. .. .. ..$ : chr [1:216] "aboveground" "belowground" "aboveground" "aboveground" ...
-##   .. .. .. ..$ : chr [1:216] "Kalamazoo" "Kalamazoo" "Kalamazoo" "Kalamazoo" ...
-##   .. .. .. ..$ : chr [1:216] "chemical" "chemical" "chemical" "chemical" ...
-##   .. .. ..@ names    : chr [1:12] "Sample_Name" "Crop" "Collection" "Treatment" ...
-##   .. .. ..@ row.names: chr [1:216] "W_C1_T1_R1_L" "W_C1_T1_R1_R" "W_C1_T1_R1_S" "W_C1_T1_R2_L" ...
-##   .. .. ..@ .S3Class : chr "data.frame"
-##   ..@ phy_tree : NULL
-##   ..@ refseq   : NULL
-```
-### DATA ANALYSIS
-
-# # ALPHA DIVERSITY
+## General Statistics
 
 ```r
-#plot_bar(fungi.unedited, fill = "Family")
+sample_sums(fungi.edited) %>%
+  sort()
+```
+
+```
+## W_C1_T3_R2_R W_C1_T4_R6_R W_C1_T1_R4_L W_C2_T3_R2_R W_C2_T1_R3_S W_C1_T3_R2_L 
+##         5180         5702         6805         6971         7374         7518 
+## W_C3_T3_R2_R W_C2_T1_R3_R W_C1_T3_R3_R W_C3_T3_R5_S W_C1_T4_R5_R W_C1_T3_R4_R 
+##         7858         7913         7996         8019         8298         8424 
+## W_C1_T1_R2_S W_C2_T1_R2_S W_C2_T4_R4_R W_C1_T4_R3_L W_C1_T2_R6_S W_C3_T4_R4_R 
+##         8918         9304         9367         9389         9451         9550 
+## W_C1_T1_R3_R W_C2_T1_R5_L W_C3_T1_R6_R W_C3_T4_R1_R W_C1_T1_R1_L W_C2_T2_R6_L 
+##         9731         9805        10236        10384        10454        10562 
+## W_C1_T1_R5_L W_C2_T3_R5_S W_C1_T3_R1_L W_C1_T1_R1_R W_C1_T1_R6_R W_C1_T3_R6_S 
+##        10584        10600        10697        10716        10779        10820 
+## W_C2_T1_R2_R W_C3_T4_R2_L W_C1_T3_R3_S W_C3_T2_R3_S W_C1_T1_R1_S W_C3_T1_R1_S 
+##        10963        11161        11201        11230        11343        11365 
+## W_C2_T2_R3_S W_C3_T2_R1_R W_C1_T2_R4_S W_C1_T2_R5_R W_C1_T1_R6_S W_C1_T3_R5_S 
+##        11383        11627        11794        11829        11919        11954 
+## W_C3_T3_R4_R W_C2_T1_R1_R W_C2_T1_R6_R W_C3_T2_R6_L W_C1_T4_R6_S W_C1_T4_R4_R 
+##        11957        12233        12247        12318        12531        12594 
+## W_C2_T4_R2_L W_C1_T1_R6_L W_C1_T2_R3_L W_C1_T3_R5_R W_C3_T2_R6_S W_C2_T3_R5_R 
+##        12598        12617        12727        12791        12819        12933 
+## W_C3_T2_R5_S W_C2_T4_R5_R W_C1_T2_R1_L W_C1_T2_R1_R W_C1_T3_R5_L W_C2_T3_R3_L 
+##        12950        12981        12993        13003        13036        13150 
+## W_C2_T3_R1_L W_C1_T2_R3_S W_C3_T1_R1_R W_C3_T2_R4_S W_C1_T2_R3_R W_C1_T4_R2_S 
+##        13387        13408        13571        13708        13782        13999 
+## W_C3_T3_R3_L W_C2_T2_R1_L W_C2_T1_R4_L W_C1_T3_R3_L W_C1_T3_R4_S W_C3_T1_R2_S 
+##        14117        14167        14220        14279        14339        14566 
+## W_C2_T2_R3_L W_C1_T3_R2_S W_C2_T2_R3_R W_C2_T2_R6_S W_C3_T3_R3_R W_C1_T1_R4_S 
+##        14577        14606        14695        14791        14823        14896 
+## W_C3_T2_R3_R W_C1_T4_R1_R W_C1_T4_R4_L W_C1_T1_R3_S W_C3_T3_R2_S W_C2_T1_R6_L 
+##        15011        15303        15360        15386        15424        15540 
+## W_C1_T4_R4_S W_C2_T4_R5_L W_C1_T4_R2_L W_C1_T4_R3_R W_C3_T1_R6_S W_C2_T1_R6_S 
+##        15575        15604        15607        15619        15720        15782 
+## W_C2_T3_R5_L W_C1_T3_R4_L W_C2_T4_R4_S W_C3_T1_R4_L W_C1_T4_R5_L W_C3_T2_R1_L 
+##        15845        15916        15986        16070        16088        16096 
+## W_C1_T1_R2_L W_C3_T2_R3_L W_C1_T4_R3_S W_C2_T3_R3_R W_C2_T2_R4_S W_C2_T2_R5_R 
+##        16180        16289        16337        16346        16390        16390 
+## W_C3_T4_R4_S W_C3_T3_R1_L W_C2_T4_R3_L W_C2_T3_R2_S W_C2_T1_R1_S W_C1_T1_R5_S 
+##        16420        16453        16512        16536        16722        16806 
+## W_C2_T1_R5_R W_C1_T1_R4_R W_C2_T1_R4_S W_C2_T2_R2_L W_C2_T1_R4_R W_C1_T4_R6_L 
+##        16813        17039        17167        17213        17343        17385 
+## W_C3_T1_R4_S W_C1_T3_R6_R W_C3_T3_R5_L W_C1_T1_R5_R W_C3_T1_R3_R W_C1_T4_R1_S 
+##        17416        17585        17617        18124        18188        18268 
+## W_C3_T2_R2_R W_C1_T2_R4_L W_C1_T3_R1_S W_C1_T4_R2_R W_C1_T2_R2_L W_C2_T4_R6_R 
+##        18443        18457        18602        18726        18798        18865 
+## W_C2_T1_R2_L W_C2_T1_R1_L W_C2_T2_R1_S W_C1_T3_R1_R W_C1_T1_R2_R W_C1_T2_R2_R 
+##        19074        19167        19386        19682        19758        19772 
+## W_C2_T3_R6_S W_C2_T4_R4_L W_C1_T2_R4_R W_C2_T2_R6_R W_C3_T3_R5_R W_C2_T1_R5_S 
+##        19815        19856        19865        20240        20576        20602 
+## W_C3_T1_R1_L W_C1_T2_R5_S W_C2_T2_R5_S W_C1_T4_R5_S W_C2_T1_R3_L W_C1_T2_R1_S 
+##        21224        21239        21254        21481        21553        21597 
+## W_C1_T1_R3_L W_C3_T3_R3_S W_C2_T3_R4_R W_C3_T4_R3_L W_C1_T3_R6_L W_C1_T2_R5_L 
+##        21929        22433        22764        23150        23307        23436 
+## W_C3_T4_R2_S W_C2_T4_R2_R W_C3_T4_R1_S W_C3_T1_R5_L W_C2_T3_R6_L W_C2_T2_R4_L 
+##        23838        25337        25842        26017        26186        26230 
+## W_C3_T4_R6_R W_C3_T4_R4_L W_C2_T4_R5_S W_C1_T2_R2_S W_C3_T1_R3_S W_C3_T3_R4_L 
+##        26804        26832        27550        27678        28109        28230 
+## W_C2_T3_R2_L W_C3_T4_R5_L W_C3_T3_R6_L W_C3_T2_R1_S W_C2_T3_R4_S W_C3_T2_R2_S 
+##        28283        28384        28507        28584        28970        29610 
+## W_C3_T2_R6_R W_C1_T4_R1_L W_C3_T2_R4_L W_C3_T3_R4_S W_C2_T3_R3_S W_C2_T2_R2_R 
+##        29743        29911        30042        30255        30510        30644 
+## W_C3_T3_R2_L W_C3_T4_R5_R W_C3_T3_R1_R W_C2_T4_R1_S W_C3_T1_R2_R W_C3_T3_R6_R 
+##        30831        31244        32308        32621        33360        33601 
+## W_C3_T4_R5_S W_C3_T1_R2_L W_C2_T3_R1_R W_C2_T3_R1_S W_C2_T3_R4_L W_C2_T4_R3_S 
+##        33824        34142        34681        36045        36465        36550 
+## W_C2_T4_R3_R W_C2_T4_R6_L W_C3_T1_R4_R W_C3_T1_R6_L W_C3_T4_R3_S W_C3_T1_R3_L 
+##        36563        37641        37808        38104        38570        38666 
+## W_C2_T2_R4_R W_C3_T3_R1_S W_C3_T2_R5_L W_C2_T3_R6_R W_C3_T2_R2_L W_C3_T4_R3_R 
+##        38724        39209        40904        41286        42124        42163 
+## W_C3_T3_R6_S W_C2_T2_R2_S W_C2_T4_R6_S W_C3_T2_R4_R W_C3_T4_R6_L W_C2_T2_R5_L 
+##        42256        42414        42932        43633        45053        45686 
+## W_C2_T4_R1_L W_C3_T1_R5_R W_C3_T1_R5_S W_C3_T4_R1_L W_C3_T4_R6_S 
+##        48152        49483        49950        53917        63519
+```
+
+```r
+# New number of total reads
+sum(sample_sums(fungi.edited)) # 4,272,434
+```
+
+```
+## [1] 4272630
+```
+
+```r
+# Mean and median read depth 
+mean(sample_sums(fungi.edited)) # 20,443.21
+```
+
+```
+## [1] 20443.21
+```
+
+```r
+median(sample_sums(fungi.edited)) # 16,512
+```
+
+```
+## [1] 16512
+```
+
+```r
+# Histogram including median read depth
+read.depths <- data.frame(sample_sums(fungi.edited))
+colnames(read.depths) <- "read.depth"
+read.depth.plot <- ggplot(read.depths, aes(read.depth)) +
+  geom_histogram(fill = cbbPalette[[3]], color = "black") + 
+  geom_vline(xintercept = median(sample_sums(fungi.unedited)), linetype = "dashed") + 
+  theme_classic() + 
+  xlab("Read Depth")
+read.depth.plot
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+### DATA ANALYSIS
+
+##Alpha diversity
+
+```r
 # Subset the data by treatment and time period
 physeq_sub <- fungi.unedited 
       
@@ -395,7 +481,11 @@ alpha_div <- cbind(Treatment = as.factor(sample_data(physeq_sub)$Treatment),
 alpha_div_summary <- alpha_div %>%
   group_by(Treatment, Collection, Tissue) %>%
   summarize(mean_shannon = mean(Shannon), 
-            sd_shannon = sd(Shannon)) 
+            sd_shannon = sd(Shannon), 
+            mean_simpson = mean(Simpson), 
+            sd_simpson = sd(Simpson), 
+            mean_observed = mean(Observed), 
+            sd_observed = sd(Observed))
 ```
 
 ```
@@ -404,10 +494,6 @@ alpha_div_summary <- alpha_div %>%
 ```
 
 ```r
-           # mean_simpson = mean(Simpson), 
-            #sd_simpson = sd(Simpson), 
-            #mean_observed = mean(Observed), 
-            #sd_observed = sd(Observed))
 #### ANOVA
 lm.alphadiv <- (lm(mean_shannon ~ Treatment*Collection,data = alpha_div_summary))
 summary(lm.alphadiv)
@@ -553,18 +639,32 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
   scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
                     labels=c("Vegetative", "Flowering", "Seed development")) +
   scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
-  xlab("Treatment") + ylab("Shannon diversity index") +
+  xlab("Management") + ylab("Shannon diversity index") +
+  ggtitle("Alpha Diversity Boxplot")+
+  theme_bw() +
+  theme(panel.background = element_rect(fill = "white"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())
+```
+
+![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+```r
+## Plot for Growth Stage (Collection)
+
+ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+                    labels=c("Vegetative", "Flowering", "Seed development")) +
+  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
+  xlab("Management") + ylab("Shannon diversity index") +
   ggtitle("Alpha Diversity Boxplot")+
   theme_bw()
 ```
 
-![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
 
-```r
-## Plot for Growth Stage (Collection)
-```
-
-# # Beta Diversity
+##Beta Diversity
 
 
 
