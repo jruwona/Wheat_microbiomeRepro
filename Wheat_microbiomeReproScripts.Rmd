@@ -75,7 +75,7 @@ str(fungi.unedited)
 ```
 ### DATA ANALYSIS
 
-# # ALPHA DIVERSITY
+##Alpha diversity
 ```{r}
 #plot_bar(fungi.unedited, fill = "Family")
 # Subset the data by treatment and time period
@@ -118,7 +118,7 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
 ## Plot for Growth Stage (Collection)
 ```
 
-# # Beta Diversity
+##Beta Diversity
 ```{r}
 
 ```
