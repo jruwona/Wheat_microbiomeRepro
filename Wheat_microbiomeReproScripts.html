@@ -373,7 +373,8 @@ if (!require(&quot;BiocManager&quot;, quietly = TRUE))
 ##   packages:
 ##     boot, class, codetools, foreign, lattice, MASS, Matrix, mgcv, nlme,
 ##     spatial, survival</code></pre>
-<pre><code>## Old packages: &#39;cli&#39;, &#39;fastmap&#39;, &#39;gargle&#39;, &#39;htmltools&#39;, &#39;rhdf5&#39;, &#39;xfun&#39;, &#39;zoo&#39;</code></pre>
+<pre><code>## Old packages: &#39;cli&#39;, &#39;fastmap&#39;, &#39;gargle&#39;, &#39;htmltools&#39;, &#39;rhdf5&#39;, &#39;TH.data&#39;,
+##   &#39;xfun&#39;, &#39;zoo&#39;</code></pre>
 <pre class="r"><code>#load libraries
 library(phyloseq)
 library(tidyverse)</code></pre>
@@ -602,6 +603,163 @@ str(fungi.unedited)</code></pre>
 ##   .. .. ..@ .S3Class : chr &quot;data.frame&quot;
 ##   ..@ phy_tree : NULL
 ##   ..@ refseq   : NULL</code></pre>
+</div>
+<div id="data-analysis" class="section level3">
+<h3>DATA ANALYSIS</h3>
+</div>
+<div id="alpha-diversity" class="section level1">
+<h1># ALPHA DIVERSITY</h1>
+<pre class="r"><code>#plot_bar(fungi.unedited, fill = &quot;Family&quot;)
+# Subset the data by treatment and time period
+physeq_sub &lt;- fungi.unedited 
+      
+# Calculate alpha diversity metrics (Shannon, Simpson, and Observed OTUs) and print table
+alpha_div &lt;- estimate_richness(physeq_sub, measures=c(&quot;Shannon&quot;, &quot;Simpson&quot;, &quot;Observed&quot;))
+# Add treatment, collection time interval and tissue information to alpha diversity table
+alpha_div &lt;- cbind(Treatment = as.factor(sample_data(physeq_sub)$Treatment), 
+                   Collection = as.factor(sample_data(physeq_sub)$Collection),
+                   Tissue = as.factor(sample_data(physeq_sub)$Tissue),
+                   alpha_div)
+# Calculate summary statistics for each alpha diversity metric 
+alpha_div_summary &lt;- alpha_div %&gt;%
+  group_by(Treatment, Collection, Tissue) %&gt;%
+  summarize(mean_shannon = mean(Shannon), 
+            sd_shannon = sd(Shannon)) </code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;Treatment&#39;, &#39;Collection&#39;. You can override
+## using the `.groups` argument.</code></pre>
+<pre class="r"><code>           # mean_simpson = mean(Simpson), 
+            #sd_simpson = sd(Simpson), 
+            #mean_observed = mean(Observed), 
+            #sd_observed = sd(Observed))
+#### ANOVA
+lm.alphadiv &lt;- (lm(mean_shannon ~ Treatment*Collection,data = alpha_div_summary))
+summary(lm.alphadiv)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = mean_shannon ~ Treatment * Collection, data = alpha_div_summary)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.56860 -0.23149 -0.01419  0.21677  0.75848 
+## 
+## Coefficients:
+##                          Estimate Std. Error t value         Pr(&gt;|t|)    
+## (Intercept)               2.70758    0.21369  12.671 0.00000000000402 ***
+## TreatmentT2              -0.05519    0.30220  -0.183           0.8566    
+## TreatmentT3               0.04862    0.30220   0.161           0.8735    
+## TreatmentT4               0.26695    0.30220   0.883           0.3858    
+## CollectionC2              0.36861    0.30220   1.220           0.2344    
+## CollectionC3             -0.29807    0.30220  -0.986           0.3338    
+## TreatmentT2:CollectionC2  0.20409    0.42737   0.478           0.6373    
+## TreatmentT3:CollectionC2  0.10610    0.42737   0.248           0.8061    
+## TreatmentT4:CollectionC2 -0.15106    0.42737  -0.353           0.7268    
+## TreatmentT2:CollectionC3  0.74316    0.42737   1.739           0.0949 .  
+## TreatmentT3:CollectionC3  0.30431    0.42737   0.712           0.4833    
+## TreatmentT4:CollectionC3 -0.51749    0.42737  -1.211           0.2377    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3701 on 24 degrees of freedom
+## Multiple R-squared:  0.5383, Adjusted R-squared:  0.3267 
+## F-statistic: 2.544 on 11 and 24 DF,  p-value: 0.02704</code></pre>
+<pre class="r"><code>anova(lm.alphadiv)</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: mean_shannon
+##                      Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## Treatment             3 0.3975 0.13251  0.9673 0.424303   
+## Collection            2 2.0945 1.04726  7.6450 0.002699 **
+## Treatment:Collection  6 1.3416 0.22361  1.6323 0.181554   
+## Residuals            24 3.2877 0.13699                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>print(anova(lm.alphadiv))</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: mean_shannon
+##                      Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## Treatment             3 0.3975 0.13251  0.9673 0.424303   
+## Collection            2 2.0945 1.04726  7.6450 0.002699 **
+## Treatment:Collection  6 1.3416 0.22361  1.6323 0.181554   
+## Residuals            24 3.2877 0.13699                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>### Test ls means
+smeans &lt;- emmeans(lm.alphadiv, ~ Treatment | Collection) # estimate lsmeans of Treatment within Collection
+Results_lsmeans &lt;- cld(smeans, alpha = 0.05, reversed = TRUE, details = TRUE) # contrast with Tukey adjustment
+Results_lsmeans</code></pre>
+<pre><code>## $emmeans
+## Collection = C1:
+##  Treatment emmean    SE df lower.CL upper.CL .group
+##  T4          2.97 0.214 24     2.53     3.42  1    
+##  T3          2.76 0.214 24     2.32     3.20  1    
+##  T1          2.71 0.214 24     2.27     3.15  1    
+##  T2          2.65 0.214 24     2.21     3.09  1    
+## 
+## Collection = C2:
+##  Treatment emmean    SE df lower.CL upper.CL .group
+##  T3          3.23 0.214 24     2.79     3.67  1    
+##  T2          3.23 0.214 24     2.78     3.67  1    
+##  T4          3.19 0.214 24     2.75     3.63  1    
+##  T1          3.08 0.214 24     2.64     3.52  1    
+## 
+## Collection = C3:
+##  Treatment emmean    SE df lower.CL upper.CL .group
+##  T2          3.10 0.214 24     2.66     3.54  1    
+##  T3          2.76 0.214 24     2.32     3.20  12   
+##  T1          2.41 0.214 24     1.97     2.85  12   
+##  T4          2.16 0.214 24     1.72     2.60   2   
+## 
+## Confidence level used: 0.95 
+## P value adjustment: tukey method for comparing a family of 4 estimates 
+## significance level used: alpha = 0.05 
+## NOTE: If two or more means share the same grouping symbol,
+##       then we cannot show them to be different.
+##       But we also did not show them to be the same. 
+## 
+## $comparisons
+## Collection = C1:
+##  contrast estimate    SE df t.ratio p.value
+##  T1 - T2   0.05519 0.302 24   0.183  0.9978
+##  T3 - T2   0.10381 0.302 24   0.344  0.9857
+##  T3 - T1   0.04862 0.302 24   0.161  0.9985
+##  T4 - T2   0.32214 0.302 24   1.066  0.7130
+##  T4 - T1   0.26695 0.302 24   0.883  0.8134
+##  T4 - T3   0.21833 0.302 24   0.722  0.8872
+## 
+## Collection = C2:
+##  contrast estimate    SE df t.ratio p.value
+##  T4 - T1   0.11588 0.302 24   0.383  0.9804
+##  T2 - T1   0.14889 0.302 24   0.493  0.9600
+##  T2 - T4   0.03301 0.302 24   0.109  0.9995
+##  T3 - T1   0.15471 0.302 24   0.512  0.9554
+##  T3 - T4   0.03883 0.302 24   0.128  0.9992
+##  T3 - T2   0.00582 0.302 24   0.019  1.0000
+## 
+## Collection = C3:
+##  contrast estimate    SE df t.ratio p.value
+##  T1 - T4   0.25054 0.302 24   0.829  0.8402
+##  T3 - T4   0.60346 0.302 24   1.997  0.2170
+##  T3 - T1   0.35292 0.302 24   1.168  0.6523
+##  T2 - T4   0.93851 0.302 24   3.106  0.0233
+##  T2 - T1   0.68797 0.302 24   2.277  0.1319
+##  T2 - T3   0.33504 0.302 24   1.109  0.6878
+## 
+## P value adjustment: tukey method for comparing a family of 4 estimates</code></pre>
+<pre class="r"><code># Create the box plot Treatments
+ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c(&quot;#000000&quot;, &quot;#E69F00&quot;, &quot;#56B4E9&quot;, &quot;#009E73&quot;, &quot;#F0E442&quot;, &quot;#0072B2&quot;, &quot;#D55E00&quot;, &quot;#CC79A7&quot;),
+                    labels=c(&quot;Vegetative&quot;, &quot;Flowering&quot;, &quot;Seed development&quot;)) +
+  scale_x_discrete(labels=c(&quot;Conventional&quot;, &quot;No till&quot;, &quot;Low Input&quot;, &quot;Organic&quot;)) +
+  xlab(&quot;Treatment&quot;) + ylab(&quot;Shannon diversity index&quot;) +
+  ggtitle(&quot;Alpha Diversity Boxplot&quot;)+
+  theme_bw()</code></pre>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<pre class="r"><code>## Plot for Growth Stage (Collection)</code></pre>
+</div>
+<div id="beta-diversity" class="section level1">
+<h1># Beta Diversity</h1>
 </div>
 
 
