@@ -6,16 +6,8 @@ output:
   html_document:
       keep_md: yes
 ---
-### Load in Libraries
+# 1.0 Load in Libraries
 ```{r}
-# DownLoad packages
-
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("phyloseq")
-
-
 #load libraries
 library(phyloseq)
 library(tidyverse)
@@ -26,7 +18,7 @@ library(dplyr)
 library(lme4)
 library(emmeans)
 library(multcomp)
-
+library(ggpubr)
 ```
 ```{r}
 ##### Set global options #####
@@ -38,7 +30,7 @@ options(scipen=10000)
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
-### READ IN DATA STEPS
+# 2.0 READ IN DATA STEPS
 ```{r}
 ###### Read in data ####
 
@@ -68,7 +60,7 @@ TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
 #FASTA.fungi <- readDNAStringSet("ITS_all_crops.fasta", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
 
 ```
-# Create Phyloseq object 
+### Create Phyloseq object 
 ```{r}
 ###### Create Initial Phyloseq object ######
 fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
@@ -76,7 +68,7 @@ fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
 
 ```
 
-## Prune sample reads and run general statistsic
+### Prune sample reads and run reads statistics
 ```{r}
 ## Remove samples with less than 5000 reads
 fungi.edited <- fungi.unedited %>% 
@@ -96,13 +88,19 @@ read.depth.plot <- ggplot(read.depths, aes(read.depth)) +
   geom_histogram(fill = cbbPalette[[5]], color = "black") + 
   geom_vline(xintercept = median(sample_sums(fungi.unedited)), linetype = "dashed") + 
   theme_classic() + 
+  ggtitle("Reads Depth Histogram") +
   xlab("Read Depth") + ylab("Count")
 read.depth.plot
 ```
 
-### DATA ANALYSIS
+# 3.0 DATA ANALYSIS
+```{r}
+# Global fungal community  dataset combining growth stage, plant organ, and crop management strategy 
+subset_phylo <- subset_samples(fungi.edited)
 
-##Alpha diversity
+```
+
+## 3.1 Alpha diversity for global fungal endophytic communities
 ```{r}
 # Rename fungi.edited data
 physeq_sub <- fungi.unedited 
@@ -123,19 +121,32 @@ alpha_div_summary <- alpha_div %>%
             sd_simpson = sd(Simpson), 
             mean_observed = mean(Observed), 
             sd_observed = sd(Observed))
-#### ANOVA
+alpha_div_summary # view summary of alpha diversity
+```
+
+### Using whole plant tissue (Global community) Shannon index to compare if management communities are different
+```{r}
+#### ANOVA based on Shannon index
 lm.alphadiv <- (lm(mean_shannon ~ Treatment*Collection,data = alpha_div_summary))
-summary(lm.alphadiv)
 anova(lm.alphadiv)
-print(anova(lm.alphadiv))
-### Test ls means
+
+### Test ls means using Tukey
 smeans <- emmeans(lm.alphadiv, ~ Treatment | Collection) # estimate lsmeans of Treatment within Collection
 Results_lsmeans <- cld(smeans, alpha = 0.05, reversed = TRUE, details = TRUE) # contrast with Tukey adjustment
-Results_lsmeans
+Results_lsmeans # expect to see Collection 3 T2 - T4   p = 0.0233 is Significant
+
+#filter significant comparisons
+lsd_df <- as.data.frame(Results_lsmeans$comparisons) # Table form  
+signif_lsmean <- lsd_df[lsd_df$p.value< 0.05,] # only  Collection 3 T2 - T4   p = 0.0233 is Significant
+signif_lsmean
+```
+### Boxplots to summarize Alpha diversity (mean _shannon) based on global fungal community
+
+```{r}
 # Create the box plot Treatments
 ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) + 
   geom_boxplot() +
-  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+  scale_fill_manual(values=c( "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
                     labels=c("Vegetative", "Flowering", "Seed development")) +
   scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
   xlab("Management") + ylab("Shannon diversity index") +
@@ -143,23 +154,36 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
   theme_bw() +
   theme(panel.background = element_rect(fill = "white"),
       panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank())
+      panel.grid.minor = element_blank()) 
+  # plot1 + geom_text(data=as.data.frame(signif_lsmean),
+            #aes(x = treatment, y = mean_shannon , label=letters[1:nrow(signif_lsmean)]))
+  #geom_text(data=as.data.frame(signif_lsmean), aes(x = Contrast, y = emmean, label=letters))
+  
+ 
 
-## Plot for Growth Stage (Collection)
-
-plot1 <- ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) + 
-  geom_boxplot() +
-  scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
-                    labels=c("Vegetative", "Flowering", "Seed development")) +
-  scale_x_discrete(labels=c("Conventional", "No till", "Low Input", "Organic")) +
-  xlab("Management") + ylab("Shannon diversity index") +
-  ggtitle("Alpha Diversity Boxplot")+
-  theme_bw()
 ```
 
-##Beta Diversity
+## 3.2 Beta diversity for global community
 ```{r}
+# Beta diversity 
+fungi.dist.bray = phyloseq::distance(fungi.edited, "bray") # create bray-curtis distance matrix
+fungi.ord <- ordinate(fungi.edited, "PCoA", "bray")
+global.nmds <- plot_ordination(fungi.edited, ordination = fungi.ord, type = "samples") 
+global.nmds.data <- global.nmds$data
 
+# Permanova of communities considering all factors and their interactions
+permanova <- adonis2(fungi.dist.bray~Collection*as.factor(Tissue)*as.factor(Treatment), as(sample_data(fungi.edited), "data.frame"), permutations = 9999) 
+
+#beta diversity plot: Principal Component chart
+ggplot() + 
+  geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = as.factor(Tissue), fill = as.factor(Treatment)), alpha = 0.8, size = 2) +
+  theme_bw() +
+  ylab("PCoA2") + 
+  xlab("PCoA1") +
+  scale_fill_manual(values=cbbPalette) +
+  stat_ellipse(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, group = Treatment), type = "norm", linetype = 2) +
+  scale_shape_manual(values=c(21, 22, 23, 24, 25)) +
+  guides(fill=guide_legend(override.aes=list(shape=21))) 
 ```
 
 
