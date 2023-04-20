@@ -41,8 +41,8 @@ BiocManager::install("phyloseq")
 ```
 
 ```
-## Old packages: 'cli', 'fastmap', 'gargle', 'htmltools', 'processx', 'rhdf5',
-##   'TH.data', 'tinytex', 'xfun', 'zoo'
+## Old packages: 'cli', 'fastmap', 'fontawesome', 'gargle', 'htmltools',
+##   'processx', 'ps', 'rhdf5', 'TH.data', 'tinytex', 'vctrs', 'xfun', 'zoo'
 ```
 
 ```r
@@ -293,7 +293,7 @@ library(multcomp)
 # no scientific notation
 options(scipen=10000) 
 
-# color blind pallet used throughout 
+# color blind pallet  
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 ### READ IN DATA STEPS
@@ -315,7 +315,7 @@ rownames(otu) <- otu$OTU_ID # format row names must match OTU table headers
 otu <- otu[,-1] # shifting to 1, numeric matrix
 OTU.fungi <- phyloseq::otu_table(otu, taxa_are_rows = TRUE)
 
-# Taxonomy
+# Taxonomy table and choose Fungi only dataset
 taxonomy.fungi <- read.csv("Data_files/taxonomy_table_its.csv")
 rownames(taxonomy.fungi) <- taxonomy.fungi$OTU_ID
 taxonomy.fungi2 <- taxonomy.fungi %>%
@@ -326,21 +326,20 @@ TAX.fungi <- phyloseq::tax_table(as.matrix(taxonomy.fungi2))
 # Fasta
 #FASTA.fungi <- readDNAStringSet("ITS_all_crops.fasta", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
 ```
-# Create Phyloseq object and Run General Statistics
+# Create Phyloseq object 
 
 ```r
 ###### Create Initial Phyloseq object ######
 fungi.unedited <- phyloseq::phyloseq(OTU.fungi, TAX.fungi, SAMP.fungi)
+```
 
+## Prune sample reads and run general statistsic
+
+```r
 ## Remove samples with less than 5000 reads
 fungi.edited <- fungi.unedited %>% 
   prune_samples(sample_sums(.) > 5000, .) %>% # remove samples below 5,000 reads
   phyloseq::filter_taxa(function(x) sum(x) > 0, TRUE) # remove taxa with less than 1 reads
-```
-
-## General Statistics
-
-```r
 sample_sums(fungi.edited) %>%
   sort()
 ```
@@ -420,7 +419,7 @@ sample_sums(fungi.edited) %>%
 
 ```r
 # New number of total reads
-sum(sample_sums(fungi.edited)) # 4,272,434
+sum(sample_sums(fungi.edited)) # should read 4,272,434
 ```
 
 ```
@@ -429,7 +428,7 @@ sum(sample_sums(fungi.edited)) # 4,272,434
 
 ```r
 # Mean and median read depth 
-mean(sample_sums(fungi.edited)) # 20,443.21
+mean(sample_sums(fungi.edited)) #  should read 20,443.21
 ```
 
 ```
@@ -437,7 +436,7 @@ mean(sample_sums(fungi.edited)) # 20,443.21
 ```
 
 ```r
-median(sample_sums(fungi.edited)) # 16,512
+median(sample_sums(fungi.edited)) #  should read 16,512
 ```
 
 ```
@@ -449,10 +448,10 @@ median(sample_sums(fungi.edited)) # 16,512
 read.depths <- data.frame(sample_sums(fungi.edited))
 colnames(read.depths) <- "read.depth"
 read.depth.plot <- ggplot(read.depths, aes(read.depth)) +
-  geom_histogram(fill = cbbPalette[[3]], color = "black") + 
+  geom_histogram(fill = cbbPalette[[5]], color = "black") + 
   geom_vline(xintercept = median(sample_sums(fungi.unedited)), linetype = "dashed") + 
   theme_classic() + 
-  xlab("Read Depth")
+  xlab("Read Depth") + ylab("Count")
 read.depth.plot
 ```
 
@@ -467,7 +466,7 @@ read.depth.plot
 ##Alpha diversity
 
 ```r
-# Subset the data by treatment and time period
+# Rename fungi.edited data
 physeq_sub <- fungi.unedited 
       
 # Calculate alpha diversity metrics (Shannon, Simpson, and Observed OTUs) and print table
@@ -652,7 +651,7 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
 ```r
 ## Plot for Growth Stage (Collection)
 
-ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) + 
+plot1 <- ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) + 
   geom_boxplot() +
   scale_fill_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
                     labels=c("Vegetative", "Flowering", "Seed development")) +
@@ -661,8 +660,6 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill= Tissue)) +
   ggtitle("Alpha Diversity Boxplot")+
   theme_bw()
 ```
-
-![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
 
 ##Beta Diversity
 
