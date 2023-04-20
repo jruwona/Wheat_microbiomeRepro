@@ -10,7 +10,8 @@ This work aims to:
 
 Within-sample diversity, alpha diversity statistics were calculated with the ‘phyloseq’ package, significance was tested by analysis of variance (ANOVA) and Tukey’s honest significant difference. Sample dissimilarity, beta diversity were calculated using a Bray-curtis distance matrix (Principal Coordinate Analysis). All graphs were generated with ‘ggplot2’. 
 
-Descriptions of R scripts:
+This workflow is fully reproducible by running the following scripts provided all nessesary software is installed: 
 1. [Datasets](https://github.com/jruwona/Wheat_microbiomeRepro/tree/main/Data_files) 
 2. [Analysis](https://github.com/jruwona/Wheat_microbiomeRepro/blob/main/Wheat_microbiomeReproScripts.Rmd)
+3. [Workflow Illustration]()
 
