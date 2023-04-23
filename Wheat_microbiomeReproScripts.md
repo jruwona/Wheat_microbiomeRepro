@@ -430,7 +430,7 @@ read.depth.plot
 
 ![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
-#3.0 DATA ANALYSIS
+# 3.0 DATA ANALYSIS
 
 ```r
 # Global fungal community  dataset combining growth stage, plant organ, and crop management strategy 
@@ -612,12 +612,16 @@ ggplot(alpha_div_summary, aes(x=Treatment, y=mean_shannon, fill=Collection)) +
 ![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 ```r
-  # plot1 + geom_text(data=as.data.frame(signif_lsmean),
-            #aes(x = treatment, y = mean_shannon , label=letters[1:nrow(signif_lsmean)]))
-  #geom_text(data=as.data.frame(signif_lsmean), aes(x = Contrast, y = emmean, label=letters))
+# Potential code for adding letters to plot geom_text(data=as.data.frame(signif_lsmean), aes(x = Contrast, y = emmean, label=letters))
 ```
+Alpha diversity conclusion
+The Boxplot shows fungal community diversity peaks during flowering across all the treatments. It is lowest during vegetative period except for the Organic management where the lowest diversity was recorded during Seed development. 
+The analysis of variance (ANOVA) shows that the variation in diversity is explained by the time of collection since it has a significant p-value (0.002699). The Tukey test is then used to show that during Seed development the means of No till is significantly different from the Organic management.
 
-## 3.2 Beta diversity for global community
+This analysis therefore supports our prediction that No till management supports more fungal diversity that other management strategies. Specifically during seed development, it supports more diversity than organic management
+
+
+## 3.2 Beta diversity for global community to test if microbial communities were dissimilar within management types across time
 
 ```r
 # Beta diversity 
@@ -628,19 +632,60 @@ global.nmds.data <- global.nmds$data
 
 # Permanova of communities considering all factors and their interactions
 permanova <- adonis2(fungi.dist.bray~Collection*as.factor(Tissue)*as.factor(Treatment), as(sample_data(fungi.edited), "data.frame"), permutations = 9999) 
+print(permanova) #expect PERMANOVA to show that within each management strategy, fungal communities from different growth stages (P < 0.001) had significantly different centroids.
+```
 
+```
+## Permutation test for adonis under reduced model
+## Terms added sequentially (first to last)
+## Permutation: free
+## Number of permutations: 9999
+## 
+## adonis2(formula = fungi.dist.bray ~ Collection * as.factor(Tissue) * as.factor(Treatment), data = as(sample_data(fungi.edited), "data.frame"), permutations = 9999)
+##                                                    Df SumOfSqs      R2       F
+## Collection                                          2    7.249 0.11743 15.7995
+## as.factor(Tissue)                                   2    3.440 0.05573  7.4984
+## as.factor(Treatment)                                3    2.126 0.03444  3.0891
+## Collection:as.factor(Tissue)                        4    2.661 0.04310  2.8993
+## Collection:as.factor(Treatment)                     6    2.585 0.04187  1.8778
+## as.factor(Tissue):as.factor(Treatment)              6    1.466 0.02375  1.0651
+## Collection:as.factor(Tissue):as.factor(Treatment)  12    2.514 0.04073  0.9132
+## Residual                                          173   39.689 0.64294        
+## Total                                             208   61.730 1.00000        
+##                                                   Pr(>F)    
+## Collection                                        0.0001 ***
+## as.factor(Tissue)                                 0.0001 ***
+## as.factor(Treatment)                              0.0001 ***
+## Collection:as.factor(Tissue)                      0.0001 ***
+## Collection:as.factor(Treatment)                   0.0001 ***
+## as.factor(Tissue):as.factor(Treatment)            0.3032    
+## Collection:as.factor(Tissue):as.factor(Treatment) 0.7891    
+## Residual                                                    
+## Total                                                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
 #beta diversity plot: Principal Component chart
 ggplot() + 
-  geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = as.factor(Tissue), fill = as.factor(Treatment)), alpha = 0.8, size = 2) +
+  geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = as.factor(Collection), fill = as.factor(Tissue)), alpha = 0.8, size = 2) +
   theme_bw() +
   ylab("PCoA2") + 
   xlab("PCoA1") +
   scale_fill_manual(values=cbbPalette) +
   stat_ellipse(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, group = Treatment), type = "norm", linetype = 2) +
   scale_shape_manual(values=c(21, 22, 23, 24, 25)) +
-  guides(fill=guide_legend(override.aes=list(shape=21))) 
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  facet_wrap(~ Treatment, nrow = 1, labeller = labeller(Treatment = c(T1 = "Conventional", `T2` = "No till", `T3` = "Low Input", T4 = "Organic"))) +
+  ggtitle("Effect of management strategies on beta diversity")
 ```
 
 ![](Wheat_microbiomeReproScripts_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+Beta diversity conclusion
+PERMANOVA tests showed that within each management strategy, fungal communities were dissimilar across different growth stages (P < 0.001).
+
+
 
 
