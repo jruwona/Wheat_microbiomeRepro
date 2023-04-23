@@ -10,7 +10,7 @@ This work aims to:
 
 Hypotheses:
 1. We hypothesized that no till management supported more diverse fungal communities compared to other management options.
-2. We also expected that fungal communities differ at each growth stage, and communities may differ across wheat organ.
+2. We also expected that fungal communities differ across the growth stages.
 
 
 Within-sample diversity, alpha diversity statistics were calculated with the ‘phyloseq’ package, significance was tested by analysis of variance (ANOVA) and Tukey’s honest significant difference. Sample dissimilarity, beta diversity were calculated using a Bray-curtis distance matrix (Principal Coordinate Analysis). All graphs were generated with ‘ggplot2’. 
