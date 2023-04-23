@@ -196,6 +196,7 @@ ggplot() +
 ```
 Beta diversity conclusion
 PERMANOVA tests showed that within each management strategy, fungal communities were dissimilar across different growth stages (P < 0.001).
+The findings support our prediction that there would be community shifts as the season progressed.
 
 
 

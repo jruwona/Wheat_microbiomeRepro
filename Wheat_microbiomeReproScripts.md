@@ -657,9 +657,9 @@ print(permanova) #expect PERMANOVA to show that within each management strategy,
 ## as.factor(Tissue)                                 0.0001 ***
 ## as.factor(Treatment)                              0.0001 ***
 ## Collection:as.factor(Tissue)                      0.0001 ***
-## Collection:as.factor(Treatment)                   0.0001 ***
-## as.factor(Tissue):as.factor(Treatment)            0.3032    
-## Collection:as.factor(Tissue):as.factor(Treatment) 0.7891    
+## Collection:as.factor(Treatment)                   0.0002 ***
+## as.factor(Tissue):as.factor(Treatment)            0.2993    
+## Collection:as.factor(Tissue):as.factor(Treatment) 0.7895    
 ## Residual                                                    
 ## Total                                                       
 ## ---
@@ -685,6 +685,7 @@ ggplot() +
 
 Beta diversity conclusion
 PERMANOVA tests showed that within each management strategy, fungal communities were dissimilar across different growth stages (P < 0.001).
+The findings support our prediction that there would be community shifts as the season progressed.
 
 
 
